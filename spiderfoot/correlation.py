@@ -4,7 +4,9 @@ import re
 import netaddr
 import yaml
 from spiderfoot import SpiderFootDb
-
+import ast
+import requests
+import html
 
 class SpiderFootCorrelator:
     """SpiderFoot correlation capabilities.
@@ -128,7 +130,7 @@ class SpiderFootCorrelator:
             self.log.info(f"Rule {rule['id']} returned {len(results.keys())} results.")
 
             for result in results:
-                self.create_correlation(rule, results[result])
+                self.create_correlation(scan_instance[0], rule, results[result])
 
     def build_db_criteria(self, matchrule: dict) -> dict:
         """Build up the criteria to be used to query the database.
@@ -926,7 +928,7 @@ class SpiderFootCorrelator:
             title = title.replace("{" + m + "}", v.replace("\r", "").split("\n")[0])
         return title
 
-    def create_correlation(self, rule: dict, data: list, readonly: bool = False) -> bool:
+    def create_correlation(self, scan_name: str, rule: dict, data: list, readonly: bool = False) -> bool:
         """Store the correlation result in the backend database.
 
         Args:
@@ -959,8 +961,57 @@ class SpiderFootCorrelator:
             self.log.error(f"Unable to create correlation in DB for {rule['id']}")
             return False
 
-        return True
+        description = rule['meta']['description'].replace('\n',' ')
+        correlation_data = f"""{{
+            "id": "{rule['id']}",
+            "name": "{title}",
+            "status": "firing",
+            "environment": "production",
+            "duplicateReason": null,
+            "service": "backend",
+            "source": [
+              "recon"
+            ],
+            "message": "{rule['meta']['name']}",
+            "description": "{description}",
+            "severity": "{rule['meta']['risk']}",
+            "pushed": true,
+            "url": "http://localhost:5001/scaninfo?id={self.scanId}",
+            "labels": {{
+              "scanId": "{self.scanId}",
+              "eventIds": "{eventIds}"
+             }},
+            "ticket_url": "https://www.keephq.dev?enrichedTicketId=456",
+            "fingerprint": "{eventIds[0]}"
+          }}"""
 
+
+        dict_string = "{'product': 'laptop', 'price': 1200}"
+        my_dict = ast.literal_eval(dict_string)
+
+        try:
+            destination_url = self.dbh.configGet()['_correlation_destination_url']
+            destination_keys_string = html.unescape(self.dbh.configGet()['_correlation_destination_key'])
+            destination_key = ast.literal_eval(destination_keys_string)[scan_name]
+            if (destination_url and destination_key):
+                try:
+                    response = requests.post(destination_url,
+                                             headers={
+                                                 "Content-Type": "application/json",
+                                                 "Accept": "application/json",
+                                                 "X-API-KEY": f"{destination_key}"
+                                             },
+                                             data=correlation_data)
+                    self.log.info(f"Status Code: {response.status_code}  Response Body (Text): {response.text}")
+                except Exception as e:
+                    self.log.error(e)
+            else:
+                self.log.error("Correlation destination URL or key not configured")
+        except Exception as e:
+            self.log.error(f"Destination URL or Keys are not defined: {e}")
+
+        return True
+    
     def check_ruleset_validity(self, rules: list) -> bool:
         """Syntax-check all rules.
 

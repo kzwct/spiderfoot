@@ -61,6 +61,8 @@ def main() -> None:
         '_fetchtimeout': 5,  # number of seconds before giving up on a fetch
         '_internettlds': 'https://publicsuffix.org/list/effective_tld_names.dat',
         '_internettlds_cache': 72,
+        '_correlation_destination_url': '',
+        '_correlation_destination_key': '',
         '_genericusers': ",".join(SpiderFootHelpers.usernamesFromWordlists(['generic-usernames'])),
         '__database': f"{SpiderFootHelpers.dataPath()}/spiderfoot.db",
         '__modules__': None,  # List of modules. Will be set after start-up.
@@ -80,6 +82,8 @@ def main() -> None:
         '_fetchtimeout': "Number of seconds before giving up on a HTTP request.",
         '_internettlds': "List of Internet TLDs.",
         '_internettlds_cache': "Hours to cache the Internet TLD list. This can safely be quite a long time given that the list doesn't change too often.",
+        '_correlation_destination_url': "URL for correlation reporting",
+        '_correlation_destination_key': "Keys for correlation reporting",
         '_genericusers': "List of usernames that if found as usernames or as part of e-mail addresses, should be treated differently to non-generics.",
         '_socks1type': "SOCKS Server Type. Can be '4', '5', 'HTTP' or 'TOR'",
         '_socks2addr': 'SOCKS Server IP Address.',
