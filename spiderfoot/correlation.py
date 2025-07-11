@@ -1002,7 +1002,7 @@ class SpiderFootCorrelator:
                                                  "X-API-KEY": f"{destination_key}"
                                              },
                                              data=correlation_data)
-                    self.log.info(f"Status Code: {response.status_code}  Response Body (Text): {response.text}")
+                    self.log.info(f"Submitted alert for {scan_name} Response: {response.text}")
                 except Exception as e:
                     self.log.error(e)
             else:
