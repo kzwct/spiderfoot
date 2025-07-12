@@ -22,6 +22,8 @@ class SpiderFootCorrelator:
     rules = list()
     type_entity_map = dict()
 
+    severity_map = {'low': 'low', 'info': 'info', 'medium': 'warning', 'high': 'high', 'critical': 'critical'}
+
     # For syntax checking
     mandatory_components = ["meta", "collections", "headline"]
     components = {
@@ -960,7 +962,6 @@ class SpiderFootCorrelator:
         if not corrId:
             self.log.error(f"Unable to create correlation in DB for {rule['id']}")
             return False
-
         description = rule['meta']['description'].replace('\n',' ')
         correlation_data = f"""{{
             "id": "{rule['id']}",
@@ -974,7 +975,7 @@ class SpiderFootCorrelator:
             ],
             "message": "{rule['meta']['name']}",
             "description": "{description}",
-            "severity": "{rule['meta']['risk']}",
+            "severity": "{SpiderFootCorrelator.severity_map.get(rule['meta']['risk'].lower())}",
             "pushed": true,
             "url": "http://localhost:5001/scaninfo?id={self.scanId}",
             "labels": {{
